@@ -239,13 +239,8 @@ def cache_gas_used_for_computation(contract, computation):
     sum_net_gas = sum([i.net_gas for i in profile.profile.values()])
     sum_net_tot_gas = sum([i.net_tot_gas for i in profile.profile.values()])
 
-    try:
-        fn_name = contract._get_fn_from_computation(computation).name
-    except AttributeError:
-        # TODO: remove this once vyper PR 3202 is merged
-        # https://github.com/vyperlang/vyper/pull/3202
-        # and new vyper is released (so update vyper requirements
-        # in pyproject.toml)
+    fn_name = contract._get_fn_from_computation(computation).name
+    if not fn_name:
         fn_name = "unnamed"
 
     fn = ContractMethodInfo(

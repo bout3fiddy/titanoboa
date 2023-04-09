@@ -35,7 +35,7 @@ from boa.util.exceptions import strip_internal_frames
 from boa.util.lrudict import lrudict
 from boa.vm.gas_meters import ProfilingGasMeter
 from boa.vyper import _METHOD_ID_VAR
-from boa.vyper.ast_utils import ast_map_of, reason_at
+from boa.vyper.ast_utils import ast_map_of, get_fn_node_from_node, reason_at
 from boa.vyper.compiler_utils import (
     _compile_vyper_function,
     generate_bytecode_for_arbitrary_stmt,
@@ -496,23 +496,21 @@ class VyperContract(_BaseContract):
         return ast_map_of(self.compiler_data.vyper_module)
 
     def _get_fn_from_computation(self, computation):
-        node = self.find_source_of(computation.code)
-        if isinstance(node, vy_ast.FunctionDef):
-            return node
-        return node.get_ancestor(vy_ast.FunctionDef)
+        return get_fn_node_from_node(self.find_source_of(computation.code))
 
     def debug_frame(self, computation=None):
         if computation is None:
             computation = self._computation
 
         fn = self._get_fn_from_computation(computation)
+        if fn is None:
+            return FrameDetail("unnamed")
 
         frame_info = self.compiler_data.function_signatures[fn.name].frame_info
-
-        mem = computation._memory
         frame_detail = FrameDetail(fn.name)
 
         # ensure memory is initialized for `decode_vyper_object()`
+        mem = computation._memory
         mem.extend(frame_info.frame_start, frame_info.frame_size)
         for k, v in frame_info.frame_vars.items():
             if v.location.name != "memory":
